@@ -1,0 +1,35 @@
+{
+  "name": "oauth-wrapper-lib",
+  "version": "0.0.1",
+  "description": "This is a multipurpose oauth wrapper library, supporting varios oauth providers",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build":"tsup"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SinghYuvraj0506/Oauth-Wrapper-library.git"
+  },
+  "keywords": [
+    "Oauth",
+    "Authentication",
+    "Google",
+    "Github"
+  ],
+  "author": {
+    "name": "Yuvraj Singh",
+    "email": "singhyuvraj0506@gmail.com",
+    "url": "https://www.yuvrajsingh.info"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SinghYuvraj0506/Oauth-Wrapper-library/issues"
+  },
+  "homepage": "https://github.com/SinghYuvraj0506/Oauth-Wrapper-library#readme",
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
