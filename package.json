@@ -6,7 +6,7 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build":"tsup"
+    "build": "tsup"
   },
   "repository": {
     "type": "git",
@@ -29,7 +29,15 @@
   },
   "homepage": "https://github.com/SinghYuvraj0506/Oauth-Wrapper-library#readme",
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
   }
 }
