@@ -15,7 +15,7 @@ npm install oauth-wrapper-lib
 ```
 
 ---
-
+g
 ### **2. Setup OAuth Providers**
 
 Example setup with **Google**:
