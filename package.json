@@ -1,6 +1,6 @@
 {
   "name": "oauth-wrapper-lib",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "This is a multipurpose oauth wrapper library, supporting varios oauth providers",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
