@@ -8,7 +8,7 @@ export class GoogleProvider extends ProviderClass {
       ...inputData,
       authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenUrl: "https://oauth2.googleapis.com/token",
-      providerName: "Google",
+      providerName: "google",
       access_type: inputData.access_type || "online",
       scope: Array.isArray(inputData.scope) 
       ? inputData.scope.join(" ") 

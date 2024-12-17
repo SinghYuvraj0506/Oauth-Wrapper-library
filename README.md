@@ -1,135 +1,267 @@
-# OAuth Integration with Express
+Here's a final `README.md` that combines both your React and Express server setup for OAuth authentication:
 
-In this guide, we will walk you through the implementation of OAuth authentication using an Express server and a third-party OAuth provider. We'll use a simple library to handle OAuth requests and token management while explaining its core features.
+---
 
-## Key Features of the OAuth Implementation
+# OAuth Integration with Express & React
 
-1. **Authorization URL**: By default, the OAuth library generates the authorization URL at the route `/api/auth/[providername]/authorize`, where `[providername]` is the name of the OAuth provider (e.g., Google, GitHub, etc.).
-   
-2. **Callback URL**: The callback URL where the OAuth provider redirects the user after authentication is automatically set as `/api/auth/[providername]/callback`.
+This project integrates OAuth authentication in both the **Express** server and **React** client, using providers like Google. It includes secure authentication, JWT management, and custom routing. The client and server are connected for seamless OAuth handling and token management.
 
-3. **HandleCallback**: The OAuth implementation allows you to handle user data after successful authentication through the `handleCallback` feature. You can save this data (like user information) into your database.
+---
 
-4. **Token Refresh**: You can refresh access tokens by sending a request to `/api/auth/refresh` with a valid refresh token.
+## Table of Contents
 
-5. **Logout**: Users can log out by clearing their access and refresh tokens via the `/api/auth/logout` route.
+1. [Prerequisites](#prerequisites)
+2. [Installation](#installation)
+3. [Server Setup](#server-setup)
+4. [Client Setup](#client-setup)
+5. [Routing Overview](#routing-overview)
+6. [Token Management](#token-management)
+7. [Securing Routes](#securing-routes)
+8. [Customizing the Flow](#customizing-the-flow)
+9. [Project Structure](#project-structure)
 
-## Steps to Implement OAuth in Express
+---
 
-### 1. Install Required Dependencies
+## 1. Prerequisites
 
-You need to install the `express`, `cookie-parser`, and your OAuth library (e.g., `oauth-wrapper-lib`).
+Before starting, make sure you have the following installed:
+
+- Node.js (v16 or higher)
+- npm or yarn
+
+---
+
+## 2. Installation
+
+### Server (Express)
+
+1. Install the required dependencies for the server:
 
 ```bash
-npm install express cookie-parser oauth-wrapper-lib
+cd server
+npm install express cookie-parser jsonwebtoken dotenv oauth-wrapper-lib
+npm install --save-dev @types/express @types/jsonwebtoken
 ```
 
-### 2. Setup OAuth Configuration in Express
+2. Create a `.env` file in the `server` directory and add the following:
 
-Here’s a simplified example showing how to integrate OAuth authentication into your Express app using the `oauth-wrapper-lib`. In this example, we'll use Google as the OAuth provider, but you can easily extend it for other providers like Facebook, GitHub, etc.
+```dotenv
+JWT_SECRET=your_jwt_secret_key
+BASE_URL = "http://localhost:3000"
+```
+
+### Client (React)
+
+1. Install dependencies for the React client:
+
+```bash
+cd client
+npm install oauth-wrapper-lib
+```
+
+---
+
+## 3. Server Setup (Express)
+
+### Express Configuration
+
+The Express server handles the OAuth flow, including Google authentication, token management, and secure routes. Below is an example configuration for the server.
 
 ```javascript
+// server.js
+require("dotenv").config();
 const express = require("express");
-const { OAuthClient, GoogleProvider, ExpressHelper } = require("oauth-wrapper-lib");
 const cookieParser = require("cookie-parser");
+const { OAuthClient, GoogleProvider } = require("oauth-wrapper-lib");
+const { AuthMiddleware, verifyJWT } = require("oauth-wrapper-lib/express");
 
 const app = express();
 app.use(cookieParser());
 
-// Basic route to verify server is running
-app.get("/", (req, res) => {
-  res.send("OAuth Integration Working");
-});
-
 // Google OAuth Provider Configuration
 const google = new GoogleProvider({
-  client_id: "YOUR_GOOGLE_CLIENT_ID",
-  client_secret: "YOUR_GOOGLE_CLIENT_SECRET",
-  requestHandlerUrl: "/api/google" // Default is "/api/auth/google/authorize" if not set
+  client_id: process.env.GOOGLE_CLIENT_ID,
+  client_secret: process.env.GOOGLE_CLIENT_SECRET,
+  requestHandlerUrl: "/api/google/auth", // Custom URL for OAuth flow
 });
 
-// Initialize OAuth client with the Google provider
+// OAuth Client Setup
 const client = new OAuthClient({
   providers: [google],
-  successRedirectUrl: "http://localhost:3000",
-  errorRedirectUrl: "http://localhost:3000/error",
+  successRedirectUrl: "http://localhost:3000/dashboard",  // React app route
+  errorRedirectUrl: "http://localhost:3000/error",      // Error page route
+  handleCallback: (providerData) => {
+    // Customize JWT payload
+    return {
+      userId: providerData.id,
+      email: providerData.email,
+      name: providerData.name,
+    };
+  },
 });
 
-// Use the ExpressHelper middleware for OAuth authentication
-app.use(ExpressHelper.AuthMiddleware(client));
+// Use AuthMiddleware to protect routes
+app.use(AuthMiddleware(client));
 
-// Endpoint to access user data
-app.get("/me", ExpressHelper.verifyJWT, (req, res) => {
-  return res.send(req.user);
+// Sample protected route
+app.get("/me", verifyJWT, (req, res) => {
+  return res.json({ message: "Authenticated User", user: req.user });
 });
 
-// Start the Express app
-app.listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 ```
 
-### 3. Understanding the Core Features
+---
 
-#### 3.1. OAuth Authorization Flow
+## 4. Client Setup (React)
 
-- **Request Handler URL**: When a user visits `/api/google` (or `/api/auth/google/authorize` if `requestHandlerUrl` is not provided), the OAuth library redirects the user to the Google authorization URL. This is where the user will grant your app access.
-  
-- **Callback URL**: After successful authentication, Google will redirect the user back to `/api/auth/google/callback` with an authorization code.
+### React OAuth Integration
 
-#### 3.2. HandleCallback
+On the client-side, we will handle OAuth redirection and manage JWT tokens after successful login. Here’s how you can integrate it with React:
 
-- The `handleCallback` function allows you to process the user data returned from the OAuth provider and store it in your database. You can customize this function to fit your needs (e.g., save the user's profile information).
+```javascript
+// App.js (React)
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AuthProvider, { ProtectedRoute } from "oauth-wrapper-lib/react";
+import { GoogleProvider } from "oauth-wrapper-lib/providers";
+import OAuthClient from "oauth-wrapper-lib";
+import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 
-#### 3.3. Token Management
+const google = new GoogleProvider({
+  client_id: "YOUR_GOOGLE_CLIENT_ID",
+  requestHandlerUrl: "/api/google",
+  handleCallback: () => {}, // Optional callback function
+});
 
-- **Access and Refresh Tokens**: After successfully authenticating the user, the system generates an access token (short-lived) and a refresh token (long-lived). These tokens are stored as HTTP-only cookies.
+const client = new OAuthClient({
+  providers: [google],
+  successRedirectUrl: "/landing", // Redirect on successful login
+});
 
-#### 3.4. Refresh Tokens
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider client={client}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute navigateTo="/landing" allowWhenUnauthenticated>
+                <Login />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/landing"
+            element={
+              <ProtectedRoute navigateTo="/">
+                <Landing />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
 
-- You can refresh the access token by making a request to `/api/auth/refresh`. The server verifies the refresh token and returns a new access token.
-
-#### 3.5. Logout
-
-- When a user logs out, their access and refresh tokens are cleared from the cookies by making a request to `/api/auth/logout`.
-
-### 4. Setting up Environment Variables
-
-In your project’s `.env` file, you need to store sensitive information like your client ID, client secret, and JWT secret:
-
-```dotenv
-BASE_URL=http://localhost:3000
-JWT_SECRET=your_jwt_secret_key
+export default App;
 ```
 
-### 5. Directory Structure
+---
 
-For clarity, your directory structure might look something like this:
+
+## 5. Routing Overview
+
+### Default Routes
+
+| Route                                    | Description                                                                                     |
+|------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `/api/auth/[providername]/authorize`     | Redirects to OAuth provider for authentication.                                                  |
+| `/api/auth/[providername]/callback`      | Handles the callback after authentication, including token storage and JWT creation.            |
+| `/api/auth/refresh`                      | Refreshes the access token using a valid refresh token.                                         |
+| `/api/auth/logout`                       | Logs the user out and clears all tokens.                                                        |
+| `/me`                                    | Protected route, requires JWT authentication. Returns the authenticated user information.        |
+
+---
+
+## 6. Token Management
+
+- **Access Token**: The server generates and sends an access token stored in HTTP-only cookies.
+- **Refresh Token**: If the access token expires, a refresh token can be used to generate a new access token.
+
+### Example API for Refreshing Token:
+
+```http
+POST /api/auth/refresh
+```
+
+### Example API for Logging Out:
+
+```http
+POST /api/auth/logout
+```
+
+---
+
+## 7. Securing Routes
+
+Use `verifyJWT` middleware to secure any route that requires authentication:
+
+```javascript
+app.get("/protected", verifyJWT, (req, res) => {
+  res.json({ message: "This is a protected route", user: req.user });
+});
+```
+
+---
+
+## 8. Customizing the Flow
+
+You can customize the OAuth flow, such as changing the payload for the JWT by using `handleCallback`.
+
+Example of a custom JWT payload:
+
+```javascript
+const handleCallback = (providerData) => {
+  return {
+    userId: providerData.id,
+    email: providerData.email,
+    name: providerData.name,
+  };
+};
+```
+
+---
+
+## 9. Project Structure
+
+Here’s a sample project structure:
 
 ```
 /your-project
-  |- .env
-  |- server.js (or app.js)
-  |- /node_modules
-  |- /package.json
-  |- /package-lock.json
+  |- /server
+    |- .env
+    |- server.js
+  |- /client
+    |- .env
+    |- /src
+      |- App.js
+  |- package.json
+  |- README.md
 ```
 
-### 6. Customizing OAuth for Your Provider
-
-While this guide uses Google as the OAuth provider, the same pattern applies to other providers. You simply need to:
-
-- Configure the provider by passing the `client_id` and `client_secret`.
-- Set any provider-specific URLs or scopes if required.
-- Handle the OAuth flow by defining routes for authorization and callback handling.
-
-### Summary of Key Routes
-
-- **/api/auth/[providername]/authorize**: Redirects the user to the OAuth provider for authentication.
-- **/api/auth/[providername]/callback**: Handles the callback from the OAuth provider after authentication.
-- **/api/auth/refresh**: Refreshes the access token using a valid refresh token.
-- **/api/auth/logout**: Logs out the user by clearing the access and refresh tokens.
+---
 
 ## Conclusion
 
-This implementation allows you to easily integrate OAuth authentication into your Express app with a variety of OAuth providers. You can handle user authentication, manage tokens, and use custom callback handling to save user data into your database.
+This project provides a robust and secure OAuth integration using **Express** on the server-side and **React** on the client-side. It handles user authentication, JWT token management, and route protection seamlessly. With customizable OAuth flows and token handling, it ensures flexibility for various OAuth providers.
+
+Feel free to modify the routing, JWT handling, and token management to fit your needs.
+
+---

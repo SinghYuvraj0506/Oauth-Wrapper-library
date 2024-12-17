@@ -10,7 +10,8 @@
     "declaration": true,
     "isolatedModules": true,
     "noEmit": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "jsx": "react"
   },
   "include": ["src", "index.d.ts"],
   "exclude": ["node_modules"]
