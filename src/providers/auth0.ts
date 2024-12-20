@@ -18,7 +18,13 @@ export class Auth0Provider extends ProviderClass {
     };
 
     const getUserInfo = async (token: string) => {
-      return null;
+      const { data: profile } = await axios.get(
+        `${authOdomain}/userinfo`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return profile;
     };
 
     // Pass data to the superclass constructor

@@ -99,6 +99,7 @@ export const getUserInfo = async (
   return data;
 };
 
+
 // Generate a random string for the code verifier
 export const generateCodeVerifier = () => {
   const array = new Uint8Array(32);
