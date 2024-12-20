@@ -46,17 +46,20 @@ export type authorizeProps = {
   scope: string;
   state: string;
   access_type?: string;
+  code_challenge_method?: "S256" | "plain";
+  code_challenge?: string;
 };
 
 export type getAccessTokenProps = {
   code: string;
-  state: string;
+  state?: string;
   redirect_uri: string;
+  code_verifier?:string
 };
 
 export interface ProviderInterface {
   getUserInfo: (token: string) => Promise<any>;
   authorize: (data: authorizeProps) => string | boolean;
-  getAccessToken: (data:getAccessTokenProps) => Promise<any | boolean>
-  getData: ()=> Partial<ProviderClassProps>
+  getAccessToken: (data: getAccessTokenProps) => Promise<any | boolean>;
+  getData: () => Partial<ProviderClassProps>;
 }

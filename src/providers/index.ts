@@ -1,2 +1,2 @@
 export {GoogleProvider} from "./google"
-export {GithubProvider} from "./github"
+export {Auth0Provider} from "./auth0"

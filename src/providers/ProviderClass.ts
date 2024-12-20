@@ -17,8 +17,8 @@ export class ProviderClass implements ProviderInterface {
       data.requestHandlerUrl = `/api/auth/${data.providerName.toLowerCase()}/authorize`;
     }
 
-    if(typeof window !== undefined){
-      data.state = data.providerName
+    if (typeof window !== undefined) {
+      data.state = data.providerName;
     }
 
     this.providerData = data;
@@ -27,7 +27,6 @@ export class ProviderClass implements ProviderInterface {
 
   // get the user data --------
   getUserInfo: (token: string) => Promise<any>;
-
 
   getData() {
     return {
@@ -47,6 +46,8 @@ export class ProviderClass implements ProviderInterface {
     scope,
     state,
     access_type,
+    code_challenge_method,
+    code_challenge,
   }: authorizeProps) {
     try {
       const params = new URLSearchParams();
@@ -57,6 +58,12 @@ export class ProviderClass implements ProviderInterface {
       params.append("state", state);
       if (access_type) {
         params.append("access_type", access_type);
+      }
+      if (code_challenge_method) {
+        params.append("code_challenge_method", code_challenge_method);
+      }
+      if (code_challenge) {
+        params.append("code_challenge", code_challenge);
       }
 
       return `${this.providerData.authUrl}?${params.toString()}`;
@@ -70,15 +77,32 @@ export class ProviderClass implements ProviderInterface {
   }
 
   // Generates the access token from code --------
-  async getAccessToken({ code, state, redirect_uri }: getAccessTokenProps) {
+  async getAccessToken({
+    code,
+    state,
+    redirect_uri,
+    code_verifier,
+  }: getAccessTokenProps) {
     try {
-      const response = await axios.post(this.providerData.tokenUrl, {
+      let body :any = {
         code,
         client_id: this.providerData.client_id,
         client_secret: this.providerData.client_secret,
         redirect_uri,
         grant_type: "authorization_code",
-      });
+      };
+
+      if (code_verifier) {
+        body = {
+          code,
+          client_id: this.providerData.client_id,
+          grant_type: "authorization_code",
+          redirect_uri,
+          code_verifier
+        };
+      }
+
+      const response = await axios.post(this.providerData.tokenUrl, body);
 
       if (response.status !== 200) {
         throw new Error("Invalid Response for token");

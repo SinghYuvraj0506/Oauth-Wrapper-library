@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { OAuthClient } from "../core/OAuthClient";
-import { getUserInfo, login } from "./jsHelper";
+import { getAccessToken, login } from "./jsHelper";
 import { Navigate } from "react-router-dom";
 
 type authContextProps = {
@@ -36,35 +36,39 @@ const AuthProvider = ({
 
   const logout = () => {
     console.log("Logging out");
-    window.localStorage.removeItem("access_token");
+    window.sessionStorage.removeItem("pkce_code_verifier");
+    window.sessionStorage.removeItem("code");
+    window.sessionStorage.removeItem("state");
     setIsAuthenticated(false);
     setUser(null);
   };
 
   const extractTokenFromUrl = () => {
+    console.log("url is", window.location.href)
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-    const accessToken =
-      hashParams.get("access_token") || urlParams.get("access_token");
+    const code =
+      hashParams.get("code") || urlParams.get("code");
     const state = hashParams.get("state") || urlParams.get("state");
 
-    return { accessToken, state };
+    return { code, state };
   };
 
   const handleLoginFlow = async () => {
     try {
       const localData = {
-        accessToken: localStorage.getItem("access_token"),
-        state: localStorage.getItem("state"), // here it is provider
+        codeVerifier: sessionStorage.getItem("pkce_code_verifier"),
+        code: sessionStorage.getItem("code"),
+        state: sessionStorage.getItem("state"), // here it is provider
       };
 
       // user is locally active ----------------------
-      if (localData.accessToken && localData.state) {
-        const data = await getUserInfo(
+      if (localData.codeVerifier && localData.state && localData.code) {
+        const data = await getAccessToken(
           client,
-          localStorage.getItem("state") as string,
-          localStorage.getItem("access_token") as string
+          sessionStorage.getItem("state") as string,
+          sessionStorage.getItem("code") as string
         );
         setIsAuthenticated(true);
         setUser(data);
@@ -72,17 +76,17 @@ const AuthProvider = ({
 
       // check if the url after login is found ----
       else {
-        const { accessToken, state } = extractTokenFromUrl();
+        const { code, state } = extractTokenFromUrl();
 
-        if (!accessToken || !state) {
-          throw new Error("Erro occured in logging in");
+        if (!code || !state) {
+          throw new Error("Error occured in logging in");
         }
 
-        localStorage.setItem("access_token", accessToken);
-        localStorage.setItem("state", state);
+        sessionStorage.setItem("code", code);
+        sessionStorage.setItem("state", state);
         setIsAuthenticated(true);
 
-        const data = await getUserInfo(client, state as string, accessToken);
+        const data = await getAccessToken(client, state as string, code);
         setUser(data);
       }
 
